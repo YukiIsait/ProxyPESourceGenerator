@@ -6,6 +6,11 @@
 
 static HMODULE module = NULL;
 
+static void PASCAL UnimplementedFunction() {
+    MessageBoxA(NULL, "Called an unimplemented function!", "Proxy Error", MB_ICONSTOP);
+    ExitProcess(-3);
+}
+
 static void PASCAL LoadOriginalLibrary(LPCSTR libraryFilePath) {
     if (module != NULL) {
         return;
@@ -58,34 +63,7 @@ static FARPROC PASCAL GetOriginalProcedureAddress(LPCSTR procedureName) {
             return address;
         }
     }
-    HANDLE processHeap = GetProcessHeap();
-    do {
-        SIZE_T procedureNameLength = 5;
-        if (HIWORD(procedureName) != 0) {
-            if (FAILED(StringCchLengthA(procedureName, STRSAFE_MAX_CCH, &procedureNameLength))) {
-                break;
-            }
-        }
-        LPSTR errorMessage = (LPSTR) HeapAlloc(processHeap, 0, procedureNameLength + 26);
-        if (errorMessage == NULL) {
-            break;
-        }
-        if (FAILED(StringCchCopyA(errorMessage, 26, "Failed to load procedure "))) {
-            break;
-        }
-        if (HIWORD(procedureName) == 0) {
-            if (wsprintfA(errorMessage + 25, "#%04X", (WORD) procedureName) != 5) {
-                break;
-            }
-        } else {
-            if (FAILED(StringCchCopyA(errorMessage + 25, procedureNameLength + 1, procedureName))) {
-                break;
-            }
-        }
-        MessageBoxA(NULL, errorMessage, "Proxy Error", MB_ICONSTOP);
-        HeapFree(processHeap, 0, errorMessage);
-    } while (0);
-    ExitProcess(-2);
+    return (FARPROC) UnimplementedFunction;
 }
 
 void PASCAL ProxyLibrary_Load() {
